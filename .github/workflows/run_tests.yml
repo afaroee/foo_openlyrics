@@ -1,7 +1,9 @@
 name: Run tests
 on:
   push:
-    branches: main
+    branches:
+      - main
+      - feature/auto-romaji
   pull_request:
   workflow_call:
 
