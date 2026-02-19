@@ -1032,6 +1032,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_AUTO_FIX_MALFORMED_TIMESTAMPS,
             ID_AUTO_REMOVE_TIMESTAMPS,
             ID_AUTO_REMOVE_SURROUNDING_SPACE,
+            ID_AUTO_CONVERT_ROMAJI,
             ID_DELETE_CURRENT_LYRICS,
             ID_OPEN_EXTERNAL_WINDOW,
             ID_CMD_COUNT,
@@ -1050,6 +1051,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_RESET_CAPITALISATION, _T("Reset capitalisation"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics | disabled_without_timestamps, ID_AUTO_FIX_MALFORMED_TIMESTAMPS, _T("Fix malformed timestamps"));
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics | disabled_without_timestamps, ID_AUTO_REMOVE_TIMESTAMPS, _T("Remove timestamps"));
+        AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_AUTO_CONVERT_ROMAJI, _T("Convert Japanese to Romaji"));
         AppendMenu(menu_edit, MF_SEPARATOR, 0, nullptr);
         AppendMenu(menu_edit, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_DELETE_CURRENT_LYRICS, _T("Delete current lyrics"));
 
@@ -1084,6 +1086,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         menudesc.Set(ID_AUTO_FIX_MALFORMED_TIMESTAMPS, "Fix timestamps that are slightly malformed so that they're recognised as timestamps and not shown in the text");
         menudesc.Set(ID_AUTO_REMOVE_TIMESTAMPS, "Remove timestamps, changing from synced lyrics to unsynced lyrics");
         menudesc.Set(ID_AUTO_REMOVE_SURROUNDING_SPACE, "Remove excess whitespace surrounding each line of lyrics");
+        menudesc.Set(ID_AUTO_CONVERT_ROMAJI, "Convert Japanese (Kanji/Kana) to Romaji");
         // clang-format on
 
         std::optional<LyricData> updated_lyrics;
@@ -1320,6 +1323,13 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             case ID_AUTO_REMOVE_SURROUNDING_SPACE:
             {
                 updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::RemoveSurroundingWhitespace,
+                                                        m_lyrics,
+                                                        m_now_playing_info);
+            }
+            break;
+            case ID_AUTO_CONVERT_ROMAJI:
+            {
+                updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::JapaneseToRomaji,
                                                         m_lyrics,
                                                         m_now_playing_info);
             }

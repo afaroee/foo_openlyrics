@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "japanese_processor.h"
 #include "logging.h"
 #include "lyric_auto_edit.h"
 #include "lyric_metadata.h"
@@ -333,6 +334,30 @@ static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyr
     }
 }
 
+static std::optional<LyricData> JapaneseToRomaji(const LyricData& lyrics)
+{
+    LyricData new_lyrics = lyrics;
+    size_t edit_count = 0;
+    for(LyricDataLine& line : new_lyrics.lines)
+    {
+        if (JapaneseProcessor::ContainsJapanese(from_tstring(line.text)))
+        {
+            line.text = to_tstring(JapaneseProcessor::ToRomaji(from_tstring(line.text)));
+            edit_count++;
+        }
+    }
+
+    if (edit_count > 0)
+    {
+        LOG_INFO("Auto-edit converted %zu lines to Romaji", edit_count);
+        return { std::move(new_lyrics) };
+    }
+    else
+    {
+        return {};
+    }
+}
+
 std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type,
                                                 const LyricData& lyrics,
                                                 const metadb_v2_rec_t& track_info)
@@ -348,6 +373,7 @@ std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type,
         case AutoEditType::FixMalformedTimestamps: result = FixMalformedTimestamps(lyrics); break;
         case AutoEditType::RemoveTimestamps: result = RemoveTimestamps(lyrics); break;
         case AutoEditType::RemoveSurroundingWhitespace: result = RemoveSurroundingWhitespace(lyrics); break;
+        case AutoEditType::JapaneseToRomaji: result = JapaneseToRomaji(lyrics); break;
 
         case AutoEditType::Unknown:
         default:

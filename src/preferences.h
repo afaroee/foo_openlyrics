@@ -50,6 +50,7 @@ enum class AutoEditType : int
     FixMalformedTimestamps = 7,
     RemoveTimestamps = 8,
     RemoveSurroundingWhitespace = 9,
+    JapaneseToRomaji = 10,
 };
 
 enum class BackgroundFillType : int

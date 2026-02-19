@@ -43,6 +43,12 @@ jobs:
       - name: Build release binaries
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x86 build\foo_openlyrics.sln
 
+      - name: Upload x86 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: foo_openlyrics-x86
+          path: build/Release/foo_openlyrics.dll
+
   build-and-test-64bit:
     name: Build & test - x64
     runs-on: windows-2022
@@ -64,3 +70,9 @@ jobs:
 
       - name: Build release binaries
         run: msbuild /r /m /p:Configuration=Release /p:Platform=x64 build\foo_openlyrics.sln
+
+      - name: Upload x64 binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: foo_openlyrics-x64
+          path: build/x64/Release/foo_openlyrics.dll
