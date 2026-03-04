@@ -104,6 +104,8 @@ private:
 
 protected: // TODO: These two are only protected to support the external window
     LyricData m_lyrics;
+    LyricData m_lyrics_original;
+    bool m_showing_romaji = false;
     metadb_handle_ptr m_now_playing; // TODO: metadb_handle_v2 when we move to requiring fb2k v2.0
     metadb_v2_rec_t m_now_playing_info;
 

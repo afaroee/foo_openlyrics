@@ -9,6 +9,7 @@
 #include "img_processing.h"
 #include "logging.h"
 #include "lyric_auto_edit.h"
+#include "japanese_processor.h"
 #include "lyric_data.h"
 #include "lyric_io.h"
 #include "lyric_metadata.h"
@@ -1033,6 +1034,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
             ID_AUTO_REMOVE_TIMESTAMPS,
             ID_AUTO_REMOVE_SURROUNDING_SPACE,
             ID_AUTO_CONVERT_ROMAJI,
+            ID_TOGGLE_ROMAJI,
             ID_DELETE_CURRENT_LYRICS,
             ID_OPEN_EXTERNAL_WINDOW,
             ID_CMD_COUNT,
@@ -1059,6 +1061,13 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         WIN32_OP(menu.CreatePopupMenu())
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS, _T("Search for lyrics"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying, ID_SEARCH_LYRICS_MANUAL, _T("Search for lyrics (manually)"));
+        
+        bool has_japanese = JapaneseProcessor::HasJapanese(m_lyrics_original);
+        if (has_japanese)
+        {
+            AppendMenu(menu, MF_STRING, ID_TOGGLE_ROMAJI, m_showing_romaji ? _T("Show Japanese") : _T("Show Romaji"));
+        }
+
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SAVE_LYRICS, _T("Save lyrics"));
         AppendMenu(menu, MF_STRING | disabled_without_nowplaying | disabled_without_lyrics, ID_SHOW_LYRIC_INFO, _T("About current lyrics"));
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
@@ -1087,6 +1096,7 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
         menudesc.Set(ID_AUTO_REMOVE_TIMESTAMPS, "Remove timestamps, changing from synced lyrics to unsynced lyrics");
         menudesc.Set(ID_AUTO_REMOVE_SURROUNDING_SPACE, "Remove excess whitespace surrounding each line of lyrics");
         menudesc.Set(ID_AUTO_CONVERT_ROMAJI, "Convert Japanese (Kanji/Kana) to Romaji");
+        menudesc.Set(ID_TOGGLE_ROMAJI, "Toggle between original Japanese and converted Romaji lyrics");
         // clang-format on
 
         std::optional<LyricData> updated_lyrics;
@@ -1332,6 +1342,29 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
                 updated_lyrics = auto_edit::RunAutoEdit(AutoEditType::JapaneseToRomaji,
                                                         m_lyrics,
                                                         m_now_playing_info);
+                // If we manually convert, we should probably update m_lyrics_original too if it was empty?
+                // But normally m_lyrics_original is set on load.
+            }
+            break;
+            case ID_TOGGLE_ROMAJI:
+            {
+                if (m_showing_romaji)
+                {
+                    m_lyrics = m_lyrics_original;
+                    m_showing_romaji = false;
+                }
+                else
+                {
+                    std::optional<LyricData> maybe_romaji = auto_edit::RunAutoEdit(AutoEditType::JapaneseToRomaji,
+                                                                                    m_lyrics_original,
+                                                                                    m_now_playing_info);
+                    if (maybe_romaji.has_value())
+                    {
+                        m_lyrics = maybe_romaji.value();
+                        m_showing_romaji = true;
+                    }
+                }
+                ::InvalidateRect(m_hWnd, nullptr, TRUE);
             }
             break;
 
@@ -1378,12 +1411,14 @@ void LyricPanel::OnContextMenu(CWindow window, CPoint point)
 
         if(updated_lyrics.has_value())
         {
-            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update({
-                std::move(updated_lyrics.value()),
-                m_now_playing,
-                m_now_playing_info,
-                LyricUpdate::Type::Edit,
-            });
+            LyricUpdate lyric_update;
+            lyric_update.lyrics = std::move(updated_lyrics.value());
+            lyric_update.lyrics_original = m_lyrics_original;
+            lyric_update.track = m_now_playing;
+            lyric_update.track_info = m_now_playing_info;
+            lyric_update.type = LyricUpdate::Type::Edit;
+
+            std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(lyric_update));
             assert(maybe_lyrics.has_value()); // Round-trip through the processing to avoid copies
             m_lyrics = std::move(maybe_lyrics.value());
         }
@@ -1521,6 +1556,16 @@ void announce_lyric_update(LyricUpdate lyric_update)
                     }
 
                     panel->m_lyrics = maybe_lyrics.value();
+                    if (update.lyrics_original.has_value())
+                    {
+                        panel->m_lyrics_original = update.lyrics_original.value();
+                    }
+                    else
+                    {
+                        panel->m_lyrics_original = panel->m_lyrics;
+                    }
+                    panel->m_showing_romaji = false; // Reset toggle state on new lyrics update
+
                     panel->m_auto_search_avoided_reason = SearchAvoidanceReason::Allowed;
                     ::InvalidateRect(panel->m_hWnd, nullptr, TRUE);
                 }

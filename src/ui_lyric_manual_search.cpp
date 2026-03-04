@@ -401,13 +401,14 @@ void ManualLyricSearch::save_selected_item()
             // NOTE: We need to take a copy here because otherwise if we click "Apply" then the
             //       preview for the applied lyrics will be empty (and so will the applied lyrics)
             //       if you click "Apply" again.
-            LyricData lyrics_copy = *selected_lyrics;
-            announce_lyric_update({
-                std::move(lyrics_copy),
-                m_track,
-                m_track_info,
-                LyricUpdate::Type::ManualSearch,
-            });
+            LyricUpdate lyric_update;
+            lyric_update.lyrics = *selected_lyrics;
+            lyric_update.lyrics_original = {};
+            lyric_update.track = m_track;
+            lyric_update.track_info = m_track_info;
+            lyric_update.type = LyricUpdate::Type::ManualSearch;
+
+            announce_lyric_update(std::move(lyric_update));
         }
         else
         {

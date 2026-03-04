@@ -103,10 +103,12 @@ void LyricAutosearchManager::check_for_available_updates()
         const bool didnt_find_anything = (!has_result && is_complete);
         if(has_result)
         {
-            LyricUpdate update = { handle->get_result(),
-                                   handle->get_track(),
-                                   handle->get_track_info(),
-                                   handle->get_type() };
+            LyricUpdate update;
+            update.lyrics = handle->get_result();
+            update.lyrics_original = {};
+            update.track = handle->get_track();
+            update.track_info = handle->get_track_info();
+            update.type = handle->get_type();
             announce_lyric_update(std::move(update));
         }
 

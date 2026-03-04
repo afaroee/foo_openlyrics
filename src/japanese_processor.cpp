@@ -2,6 +2,7 @@
 #include "japanese_processor.h"
 #include "win32_util.h"
 #include "logging.h"
+#include "lyric_data.h"
 
 // Note: IFELanguage and IID_IFELanguage are defined in msime.h
 // CLSID_VERSION_DEPENDENT_MSIME_JAPANESE is also in msime.h
@@ -112,16 +113,32 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
 
 bool JapaneseProcessor::ContainsJapanese(const std::string& text)
 {
-    std::vector<wchar_t> wide_text_vec;
-    narrow_to_wide_string(CP_UTF8, text, wide_text_vec);
-    std::wstring wide_text(wide_text_vec.data(), wide_text_vec.size());
+    return HasJapanese(text);
+}
 
-    for (wchar_t c : wide_text)
+bool JapaneseProcessor::HasJapanese(const std::string& text)
+{
+    std::tstring wtext = to_tstring(text);
+    for (wchar_t c : wtext)
     {
-        if ((c >= 0x3040 && c <= 0x309F) || // Hiragana
-            (c >= 0x30A0 && c <= 0x30FF) || // Katakana
-            (c >= 0x4E00 && c <= 0x9FAF) || // Kanji
-            (c >= 0xFF66 && c <= 0xFF9F))   // Half-width Katakana
+        // Hiragana: 3040–309F
+        // Katakana: 30A0–30FF
+        // Kanji: 4E00–9FAF
+        if ((c >= 0x3040 && c <= 0x309F) ||
+            (c >= 0x30A0 && c <= 0x30FF) ||
+            (c >= 0x4E00 && c <= 0x9FAF))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool JapaneseProcessor::HasJapanese(const LyricData& lyrics)
+{
+    for (const LyricDataLine& l : lyrics.lines)
+    {
+        if (HasJapanese(from_tstring(l.text)))
         {
             return true;
         }

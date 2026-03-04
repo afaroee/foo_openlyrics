@@ -708,6 +708,12 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
         return {};
     }
 
+    // Preserve the original lyrics before any auto-edits or modifications
+    if(!update.lyrics_original.has_value())
+    {
+        update.lyrics_original = update.lyrics;
+    }
+
     const LyricSourceBase* source = LyricSourceBase::get(update.lyrics.source_id);
     const bool loaded_from_local_src = ((source != nullptr) && source->is_local());
     const AutoSaveStrategy autosave = preferences::saving::autosave_strategy();
@@ -758,7 +764,7 @@ std::optional<LyricData> io::process_available_lyric_update(LyricUpdate update)
                  int(autosave));
     }
 
-    return { std::move(update.lyrics) };
+    return std::move(update.lyrics);
 }
 
 bool io::delete_saved_lyrics(metadb_handle_ptr track, const LyricData& lyrics)

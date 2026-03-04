@@ -17,6 +17,7 @@ struct LyricUpdate
     };
 
     LyricData lyrics;
+    std::optional<LyricData> lyrics_original;
     metadb_handle_ptr track;
     metadb_v2_rec_t track_info;
     Type type;

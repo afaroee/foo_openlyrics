@@ -576,12 +576,13 @@ void LyricEditor::ApplyLyricEdits()
         return;
     }
 
-    announce_lyric_update({
-        std::move(data),
-        m_track,
-        m_track_info,
-        LyricUpdate::Type::Edit,
-    });
+    LyricUpdate lyric_update;
+    lyric_update.lyrics = std::move(data);
+    lyric_update.lyrics_original = {};
+    lyric_update.track = m_track;
+    lyric_update.track_info = m_track_info;
+    lyric_update.type = LyricUpdate::Type::Edit;
+    announce_lyric_update(std::move(lyric_update));
     lyric_metadata_log_edit(m_track_info);
 
     // Update m_input_text so that HasContentChanged() will return the correct value after the same
