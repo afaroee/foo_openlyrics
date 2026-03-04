@@ -69,7 +69,7 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
     {L"わ", L"wa"}, {L"を", L"wo"}, {L"ん", L"n"},
     {L"が", L"ga"}, {L"ぎ", L"gi"}, {L"ぐ", L"gu"}, {L"げ", L"ge"}, {L"ご", L"go"},
     {L"ざ", L"za"}, {L"じ", L"ji"}, {L"ず", L"zu"}, {L"ぜ", L"ze"}, {L"ぞ", L"zo"},
-    {L"だ", L"da"}, {L"ぢ", L"ji"}, {L"づ", L"zu"}, {L"で", L"te"}, {L"ど", L"do"},
+    {L"だ", L"da"}, {L"ぢ", L"ji"}, {L"づ", L"zu"}, {L"で", L"de"}, {L"ど", L"do"},
     {L"ば", L"ba"}, {L"び", L"bi"}, {L"ぶ", L"bu"}, {L"べ", L"be"}, {L"ぼ", L"bo"},
     {L"ぱ", L"pa"}, {L"ぴ", L"pi"}, {L"ぷ", L"pu"}, {L"ぺ", L"pe"}, {L"ぽ", L"po"},
     {L"きゃ", L"kya"}, {L"きゅ", L"kyu"}, {L"きょ", L"kyo"},
@@ -95,7 +95,7 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
     {L"ワ", L"wa"}, {L"ヲ", L"wo"}, {L"ン", L"n"},
     {L"ガ", L"ga"}, {L"ギ", L"gi"}, {L"グ", L"gu"}, {L"ゲ", L"ge"}, {L"ゴ", L"go"},
     {L"ザ", L"za"}, {L"ジ", L"ji"}, {L"ズ", L"zu"}, {L"ゼ", L"ze"}, {L"ゾ", L"zo"},
-    {L"ダ", L"da"}, {L"ヂ", L"ji"}, {L"ヅ", L"zu"}, {L"デ", L"te"}, {L"ド", L"do"},
+    {L"ダ", L"da"}, {L"ヂ", L"ji"}, {L"ヅ", L"zu"}, {L"デ", L"de"}, {L"ド", L"do"},
     {L"バ", L"ba"}, {L"ビ", L"bi"}, {L"ブ", L"bu"}, {L"ベ", L"be"}, {L"ボ", L"bo"},
     {L"パ", L"pa"}, {L"ピ", L"pi"}, {L"プ", L"pu"}, {L"ペ", L"pe"}, {L"ポ", L"po"},
     {L"キャ", L"kya"}, {L"キュ", L"kyu"}, {L"キョ", L"kyo"},
@@ -105,7 +105,7 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
     {L"ヒャ", L"hya"}, {L"ヒュ", L"hyu"}, {L"ヒョ", L"hyo"},
     {L"ミャ", L"mya"}, {L"ミュ", L"myu"}, {L"ミョ", L"myo"},
     {L"リャ", L"rya"}, {L"リュ", L"ryu"}, {L"リョ", L"ryo"},
-    {L"ギャ", L"gya"}, {L"ギュ", L"kyu"}, {L"ギョ", L"gyo"},
+    {L"ギャ", L"gya"}, {L"ギュ", L"gyu"}, {L"ギョ", L"gyo"},
     {L"ジャ", L"ja"}, {L"ジュ", L"ju"}, {L"ジョ", L"jo"},
     {L"ビャ", L"bya"}, {L"ビュ", L"byu"}, {L"ビョ", L"byo"},
     {L"ピャ", L"pya"}, {L"ピュ", L"pyu"}, {L"ピョ", L"pyo"}
@@ -330,5 +330,12 @@ MVTF_TEST(japanese_processor_to_romaji_handles_small_tsu)
 MVTF_TEST(japanese_processor_to_romaji_handles_combinations)
 {
     ASSERT(JapaneseProcessor::ToRomaji("きょう") == "kyou");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_fixes_misconversions)
+{
+    ASSERT(JapaneseProcessor::ToRomaji("で") == "de");
+    ASSERT(JapaneseProcessor::ToRomaji("デ") == "de");
+    ASSERT(JapaneseProcessor::ToRomaji("ギュ") == "gyu");
 }
 #endif
