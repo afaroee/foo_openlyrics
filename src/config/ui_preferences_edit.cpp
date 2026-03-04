@@ -28,7 +28,6 @@ static const std::pair<AutoEditType, const TCHAR*> g_autoedit_options[] = {
     { AutoEditType::ResetCapitalisation, _T("Reset capitalisation") },
     { AutoEditType::FixMalformedTimestamps, _T("Fix malformed timestamps") },
     { AutoEditType::RemoveTimestamps, _T("Remove timestamps") },
-    { AutoEditType::JapaneseToRomaji, _T("Convert Japanese to Romaji") },
 };
 
 std::vector<AutoEditType> preferences::editing::automated_auto_edits()
