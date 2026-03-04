@@ -336,26 +336,34 @@ static std::optional<LyricData> RemoveSurroundingWhitespace(const LyricData& lyr
 
 static std::optional<LyricData> JapaneseToRomaji(const LyricData& lyrics)
 {
-    LyricData new_lyrics = lyrics;
-    size_t edit_count = 0;
-    for(LyricDataLine& line : new_lyrics.lines)
+    std::vector<std::string> lines_to_convert;
+    std::vector<size_t> indices_to_convert;
+
+    for (size_t i = 0; i < lyrics.lines.size(); ++i)
     {
-        if (JapaneseProcessor::ContainsJapanese(from_tstring(line.text)))
+        std::string line_text = from_tstring(lyrics.lines[i].text);
+        if (JapaneseProcessor::ContainsJapanese(line_text))
         {
-            line.text = to_tstring(JapaneseProcessor::ToRomaji(from_tstring(line.text)));
-            edit_count++;
+            lines_to_convert.push_back(std::move(line_text));
+            indices_to_convert.push_back(i);
         }
     }
 
-    if (edit_count > 0)
-    {
-        LOG_INFO("Auto-edit converted %zu lines to Romaji", edit_count);
-        return { std::move(new_lyrics) };
-    }
-    else
+    if (lines_to_convert.empty())
     {
         return {};
     }
+
+    std::vector<std::string> converted_lines = JapaneseProcessor::BatchToRomaji(lines_to_convert);
+    
+    LyricData new_lyrics = lyrics;
+    for (size_t i = 0; i < indices_to_convert.size(); ++i)
+    {
+        new_lyrics.lines[indices_to_convert[i]].text = to_tstring(converted_lines[i]);
+    }
+
+    LOG_INFO("Auto-edit converted %zu lines to Romaji", indices_to_convert.size());
+    return { std::move(new_lyrics) };
 }
 
 std::optional<LyricData> auto_edit::RunAutoEdit(AutoEditType type,

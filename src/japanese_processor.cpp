@@ -2,14 +2,58 @@
 #include "japanese_processor.h"
 #include "win32_util.h"
 #include "logging.h"
+
+// Note: IFELanguage and IID_IFELanguage are defined in msime.h
+// CLSID_VERSION_DEPENDENT_MSIME_JAPANESE is also in msime.h
+#include <initguid.h>
 #include <msime.h>
 
-// COM interface IID for IFelisp (MSIME)
-// Found in msime.h or via docs
-#ifndef __IFelisp_INTERFACE_DEFINED__
-const IID IID_IFelisp = { 0x01511360, 0xC198, 0x11D1, { 0xB2, 0x00, 0x00, 0x60, 0x08, 0x84, 0x7C, 0x12 } };
-const CLSID CLSID_MSIME_JAPANESE_6_1 = { 0xAF3E7610, 0xC195, 0x11D1, { 0xB2, 0x00, 0x00, 0x60, 0x08, 0x84, 0x7C, 0x12 } };
-#endif
+struct ComScope
+{
+    HRESULT hr;
+    bool finalized = false;
+    ComScope() {
+        hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        if (hr == RPC_E_CHANGED_MODE) {
+            finalized = false;
+        } else if (SUCCEEDED(hr)) {
+            finalized = true;
+        }
+    }
+    ~ComScope() { if (finalized) CoUninitialize(); }
+};
+
+struct FELanguageScope
+{
+    IFELanguage* p = nullptr;
+    FELanguageScope()
+    {
+        HRESULT hr = CoCreateInstance(CLSID_VERSION_DEPENDENT_MSIME_JAPANESE, nullptr, CLSCTX_INPROC_SERVER, IID_IFELanguage, (void**)&p);
+        if (SUCCEEDED(hr) && p)
+        {
+            hr = p->Open();
+            if (FAILED(hr))
+            {
+                LOG_ERROR("Failed to open IFELanguage: 0x%08X", hr);
+                p->Release();
+                p = nullptr;
+            }
+        }
+        else if (FAILED(hr))
+        {
+            LOG_ERROR("Failed to create IFELanguage instance: 0x%08X", hr);
+        }
+    }
+    ~FELanguageScope()
+    {
+        if (p)
+        {
+            p->Close();
+            p->Release();
+        }
+    }
+    operator IFELanguage*() { return p; }
+};
 
 const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map = {
     {L"あ", L"a"}, {L"い", L"i"}, {L"う", L"u"}, {L"え", L"e"}, {L"お", L"o"},
@@ -98,57 +142,84 @@ std::string JapaneseProcessor::ToRomaji(const std::string& text)
     return std::string(narrow_result_vec.data(), narrow_result_vec.size());
 }
 
-std::wstring JapaneseProcessor::ToRomajiInternal(const std::wstring& text)
+std::wstring JapaneseProcessor::ToRomajiInternal(const std::wstring& text, IFELanguage* pFE)
 {
-    std::wstring kana = KanjiToKana(text);
+    std::wstring kana = KanjiToKana(text, pFE);
     return KanaToRomaji(kana);
 }
 
-std::wstring JapaneseProcessor::KanjiToKana(const std::wstring& text)
+std::vector<std::string> JapaneseProcessor::BatchToRomaji(const std::vector<std::string>& lines)
 {
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    if (FAILED(hr) && hr != RPC_E_CHANGED_MODE)
+    std::vector<std::string> results;
+    results.reserve(lines.size());
+
+    ComScope com;
+    if (FAILED(com.hr) && com.hr != RPC_E_CHANGED_MODE)
+    {
+        LOG_ERROR("BatchToRomaji: CoInitializeEx failed with 0x%08X", com.hr);
+        return lines;
+    }
+
+    FELanguageScope fe;
+    if (!fe.p)
+    {
+        return lines;
+    }
+
+    for (const auto& line : lines)
+    {
+        std::vector<wchar_t> wide_text_vec;
+        narrow_to_wide_string(CP_UTF8, line, wide_text_vec);
+        std::wstring wide_text(wide_text_vec.data(), wide_text_vec.size());
+
+        std::wstring result_wide = ToRomajiInternal(wide_text, fe.p);
+
+        std::vector<char> narrow_result_vec;
+        wide_to_narrow_string(CP_UTF8, result_wide, narrow_result_vec);
+        results.push_back(std::string(narrow_result_vec.data(), narrow_result_vec.size()));
+    }
+
+    return results;
+}
+
+std::wstring JapaneseProcessor::KanjiToKana(const std::wstring& text, IFELanguage* pFE)
+{
+    if (pFE)
+    {
+        return KanjiToKanaInternal(text, pFE);
+    }
+
+    ComScope com;
+    if (FAILED(com.hr) && com.hr != RPC_E_CHANGED_MODE)
     {
         return text;
     }
 
-    IFelisp* pFelisp = nullptr;
-    hr = CoCreateInstance(CLSID_MSIME_JAPANESE_6_1, nullptr, CLSCTX_INPROC_SERVER, IID_IFelisp, (void**)&pFelisp);
-    if (FAILED(hr))
+    FELanguageScope fe;
+    if (!fe.p)
     {
-        // Fallback to older CLSID if necessary or just return text
-        // For simplicity, we'll try the common CLSID and return if it fails.
-        // In a real app, you might try multiple CLSIDs.
-        if (hr != S_OK)
-        {
-             LOG_WARN("Failed to create IFelisp instance: 0x%08x", hr);
-        }
+        return text;
     }
 
-    std::wstring result;
-    if (pFelisp)
+    return KanjiToKanaInternal(text, fe.p);
+}
+
+std::wstring JapaneseProcessor::KanjiToKanaInternal(const std::wstring& text, IFELanguage* pFE)
+{
+    std::wstring result = text;
+    BSTR bstrInput = SysAllocString(text.c_str());
+    if (bstrInput)
     {
-        BSTR bstrInput = SysAllocString(text.c_str());
         BSTR bstrOutput = nullptr;
-        hr = pFelisp->GetPhonetic(bstrInput, 1, text.length(), &bstrOutput);
-        if (SUCCEEDED(hr))
+        HRESULT hr = pFE->GetPhonetic(bstrInput, 1, (LONG)text.length(), &bstrOutput);
+        if (SUCCEEDED(hr) && bstrOutput)
         {
             result = bstrOutput;
             SysFreeString(bstrOutput);
         }
-        else
-        {
-            result = text;
-        }
         SysFreeString(bstrInput);
-        pFelisp->Release();
-    }
-    else
-    {
-        result = text;
     }
 
-    CoUninitialize();
     return result;
 }
 
