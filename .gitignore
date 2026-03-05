@@ -13,3 +13,16 @@ Release/
 releases/
 metrics/metrics_data/
 metrics/.venv
+
+# Build logs and temporary files
+*.log
+build_log*.txt
+rebuild_*.log
+tmp_*
+vs_path.txt
+msbuild_path.txt
+original_jp*.txt
+diff_jp*.txt
+win32_errors.txt
+dumpbin_*.txt
+build_output*.txt
