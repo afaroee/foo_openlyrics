@@ -1,6 +1,8 @@
 #include "stdafx.h"
 
+#ifndef CURL_STATICLIB
 #define CURL_STATICLIB
+#endif
 #include "curl/curl.h"
 #include "curl/multi.h"
 #include "http.h"

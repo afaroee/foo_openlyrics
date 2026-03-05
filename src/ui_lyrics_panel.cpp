@@ -1526,9 +1526,12 @@ void announce_lyric_update(LyricUpdate lyric_update)
     fb2k::inMainThread2(
         [update = std::move(lyric_update)]
         {
-            metadb_v2_rec_t track_info =
-                update.track_info; // Copy this out so we can move update into process_available_lyric_update
+            metadb_handle_ptr track = update.track;
+            std::optional<LyricData> lyrics_original = update.lyrics_original;
+            metadb_v2_rec_t track_info = update.track_info; 
+            
             std::optional<LyricData> maybe_lyrics = io::process_available_lyric_update(std::move(update));
+
             if(maybe_lyrics.has_value())
             {
                 lyric_metadata_log_retrieved(track_info, maybe_lyrics.value());
@@ -1539,15 +1542,15 @@ void announce_lyric_update(LyricUpdate lyric_update)
                 for(LyricPanel* panel : g_active_panels)
                 {
                     assert(panel != nullptr);
-                    if(update.track != panel->m_now_playing)
+                    if(track != panel->m_now_playing)
                     {
                         continue;
                     }
 
                     panel->m_lyrics = maybe_lyrics.value();
-                    if (update.lyrics_original.has_value())
+                    if (lyrics_original.has_value())
                     {
-                        panel->m_lyrics_original = update.lyrics_original.value();
+                        panel->m_lyrics_original = lyrics_original.value();
                     }
                     else
                     {

@@ -9,6 +9,7 @@
 #include <initguid.h>
 #include <msime.h>
 
+
 struct ComScope
 {
     HRESULT hr;
@@ -161,9 +162,140 @@ std::string JapaneseProcessor::ToRomaji(const std::string& text)
 
 std::wstring JapaneseProcessor::ToRomajiInternal(const std::wstring& text, IFELanguage* pFE)
 {
-    std::wstring kana = KanjiToKana(text, pFE);
-    return KanaToRomaji(kana);
+    if (text.empty()) return L"";
+
+    auto process_with_fe = [&](IFELanguage* fe) -> std::wstring {
+        // First, try morphological analysis to detect particles and segments
+        MORRSLT* pResult = nullptr;
+        HRESULT hr = fe->GetJMorphResult(
+            FELANG_REQ_REV,            // reverse conversion to get morphemes
+            FELANG_CMODE_HIRAGANAOUT,  // output in hiragana
+            (INT)text.length(),
+            text.c_str(),
+            nullptr,                   // no per-character info
+            &pResult);
+
+        if (SUCCEEDED(hr) && pResult && pResult->pWDD && pResult->cWDD > 0)
+        {
+            std::wstring result;
+            
+            // Process each word descriptor (WDD) segment
+            for (WORD i = 0; i < pResult->cWDD; ++i)
+            {
+                const WDD& wdd = pResult->pWDD[i];
+                
+                // Get the original surface text for this segment
+                // WDD offsets are relative to pResult->pwchOutput (the conversion result string)
+                std::wstring surface;
+                if (pResult->pwchOutput && wdd.cchDisp > 0)
+                {
+                    surface.assign(pResult->pwchOutput + wdd.wDispPos, wdd.cchDisp);
+                }
+                else
+                {
+                    // Fallback to original text if pwchOutput is somehow missing
+                    surface = text.substr(wdd.wDispPos, wdd.cchDisp);
+                }
+                
+                // Get the reading for this segment
+                std::wstring reading;
+                if (pResult->pwchRead && wdd.cchRead > 0)
+                {
+                    reading.assign(pResult->pwchRead + wdd.wReadPos, wdd.cchRead);
+                }
+                
+                // If reading still contains Kanji, or is empty, use GetPhonetic for this specific segment
+                bool hasKanjiInReading = false;
+                for (wchar_t c : reading)
+                {
+                    if (c >= 0x4E00 && c <= 0x9FAF) { hasKanjiInReading = true; break; }
+                }
+
+                if (reading.empty() || hasKanjiInReading)
+                {
+                    // Call GetPhonetic for just this segment to ensure we get Kana
+                    BSTR bstrInput = SysAllocString(surface.c_str());
+                    if (bstrInput)
+                    {
+                        BSTR bstrOutput = nullptr;
+                        HRESULT hrP = fe->GetPhonetic(bstrInput, 1, (LONG)surface.length(), &bstrOutput);
+                        if (SUCCEEDED(hrP) && bstrOutput)
+                        {
+                            reading = bstrOutput;
+                            SysFreeString(bstrOutput);
+                        }
+                        SysFreeString(bstrInput);
+                    }
+                }
+
+                // If still empty fallback to surface
+                if (reading.empty()) reading = surface;
+
+                // Special handling for particles "は" (wa) and "へ" (e)
+                // These should be 'wa' and 'e' when used as particles.
+                // We check if:
+                // 1. The POS has the particle bit set.
+                // 2. The reading is EXACTLY 'は' or 'へ' and it's NOT a noun/verb/adjective.
+                // 3. The segment ends with 'は' or 'へ' and matches a common word+particle pattern.
+                
+                bool isLikelyWaParticle = (reading == L"\u306f") && 
+                    ((wdd.nPos & IFED_POS_PARTICLE) || !(wdd.nPos & (IFED_POS_NOUN | IFED_POS_VERB | IFED_POS_ADJECTIVE)));
+                
+                bool isLikelyEParticle = (reading == L"\u3078") && 
+                    ((wdd.nPos & IFED_POS_PARTICLE) || !(wdd.nPos & (IFED_POS_NOUN | IFED_POS_VERB | IFED_POS_ADJECTIVE)));
+
+                if (isLikelyWaParticle)
+                {
+                    result += L"wa";
+                }
+                else if (isLikelyEParticle)
+                {
+                    result += L"e";
+                }
+                else if (reading.length() > 1 && reading.back() == L'\u306f' && (wdd.nPos & (IFED_POS_PARTICLE | IFED_POS_NOUN | IFED_POS_ADVERB)))
+                {
+                    // This handles cases like "それは", "君は", "僕は" if they are one WDD
+                    std::wstring base = reading.substr(0, reading.length() - 1);
+                    result += KanaToRomaji(base) + L"wa";
+                }
+                else if (reading.length() > 1 && reading.back() == L'\u3078' && (wdd.nPos & (IFED_POS_PARTICLE | IFED_POS_NOUN | IFED_POS_ADVERB)))
+                {
+                    // This handles cases like "どこへ", "あそこへ"
+                    std::wstring base = reading.substr(0, reading.length() - 1);
+                    result += KanaToRomaji(base) + L"e";
+                }
+                else
+                {
+                    // Not a identified particle at end, convert normally
+                    result += KanaToRomaji(reading);
+                }
+            }
+
+            CoTaskMemFree(pResult);
+            return result;
+        }
+
+        if (pResult) CoTaskMemFree(pResult);
+
+        // Fallback: use simple phonetic conversion for the whole string if morphological analysis failed
+        // We still use ToRomaji on it line by line if we want to be safe, but let's try to improve GetJMorphResult first.
+        std::wstring rawKana = KanjiToKanaInternal(text, fe);
+        // Even in fallback, try to detect some very common particles at the end of the line or before spaces
+        // but this is risky, so we mostly rely on GetJMorphResult.
+        return KanaToRomaji(rawKana);
+    };
+
+    if (pFE) return process_with_fe(pFE);
+
+    ComScope com;
+    if (FAILED(com.hr) && com.hr != RPC_E_CHANGED_MODE) return KanaToRomaji(KanjiToKana(text));
+
+    FELanguageScope fe;
+    if (!fe.p) return KanaToRomaji(KanjiToKana(text));
+
+    return process_with_fe(fe.p);
 }
+
 
 std::vector<std::string> JapaneseProcessor::BatchToRomaji(const std::vector<std::string>& lines)
 {
@@ -337,5 +469,12 @@ MVTF_TEST(japanese_processor_to_romaji_fixes_misconversions)
     ASSERT(JapaneseProcessor::ToRomaji("で") == "de");
     ASSERT(JapaneseProcessor::ToRomaji("デ") == "de");
     ASSERT(JapaneseProcessor::ToRomaji("ギュ") == "gyu");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_handles_particle_wa)
+{
+    ASSERT(JapaneseProcessor::ToRomaji("私は") == "watashiwa");
+    ASSERT(JapaneseProcessor::ToRomaji("おはよう") == "ohayou");
+    ASSERT(JapaneseProcessor::ToRomaji("はじめまして") == "hajimemashite");
 }
 #endif

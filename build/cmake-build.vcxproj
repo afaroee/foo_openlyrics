@@ -94,14 +94,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+      <Command>powershell $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 
 REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
 SET TRIMMED_INTDIR=%RAWINTDIR:~0,-1%
-IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir)")
+IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir).")
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -125,14 +125,14 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+      <Command>powershell $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 
 REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
 SET TRIMMED_INTDIR=%RAWINTDIR:~0,-1%
-IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir)")
+IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir).")
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -154,14 +154,14 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+      <Command>powershell $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 
 REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
 SET TRIMMED_INTDIR=%RAWINTDIR:~0,-1%
-IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir)")
+IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir).")
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -185,14 +185,14 @@ cmake --build "%TRIMMED_INTDIR%" --config "$(Configuration)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>pwsh $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
+      <Command>powershell $(SolutionDir)..\3rdparty\fetch-3rdparty-libs.ps1
 
 REM We need to strip the trailing slash from OutDir and IntDir otherwise CMake 3.31.8 fails to parse the command/CMakeLists file
 SET RAWOUTDIR=$(OutDir)
 SET TRIMMED_OUTDIR=%RAWOUTDIR:~0,-1%
 SET RAWINTDIR=$(IntDir)
 SET TRIMMED_INTDIR=%RAWINTDIR:~0,-1%
-IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir)")
+IF NOT EXIST "%TRIMMED_INTDIR%\*.sln" (cmake -B "%TRIMMED_INTDIR%" -DCMAKE_SYSTEM_VERSION=10.0.19041.0 -DCMAKE_GENERATOR_PLATFORM="$(Platform)" -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$&lt;1:%TRIMMED_OUTDIR%&gt;" -S "$(ProjectDir).")
 </Command>
     </PreBuildEvent>
     <PostBuildEvent>
