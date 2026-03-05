@@ -131,7 +131,8 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
     {L"ぁ", L"a"}, {L"ぃ", L"i"}, {L"ぅ", L"u"}, {L"ぇ", L"e"}, {L"ぉ", L"o"},
     {L"ァ", L"a"}, {L"ィ", L"i"}, {L"ゥ", L"u"}, {L"ェ", L"e"}, {L"ォ", L"o"},
     {L"ゃ", L"ya"}, {L"ゅ", L"yu"}, {L"ょ", L"yo"},
-    {L"ャ", L"ya"}, {L"ュ", L"yu"}, {L"ョ", L"yo"}
+    {L"ャ", L"ya"}, {L"ュ", L"yu"}, {L"ョ", L"yo"},
+    {L"っ", L"t"}, {L"ッ", L"t"}
 };
 
 bool JapaneseProcessor::ContainsJapanese(const std::string& text)
@@ -408,7 +409,15 @@ std::wstring JapaneseProcessor::KanaToRomaji(const std::wstring& text)
                 auto it = m_kana_romaji_map.find(next_kana);
                 if (it != m_kana_romaji_map.end() && !it->second.empty())
                 {
-                    result += it->second[0]; // Add first char of next romaji
+                    // Special case for Hepburn: 'っ' before 'ch' is 't'
+                    if (it->second.size() >= 2 && it->second[0] == 'c' && it->second[1] == 'h')
+                    {
+                        result += 't';
+                    }
+                    else
+                    {
+                        result += it->second[0];
+                    }
                     continue;
                 }
             }
@@ -509,6 +518,15 @@ MVTF_TEST(japanese_processor_to_romaji_handles_lone_small_kana)
 {
     // Safety fallback for lone small kana
     ASSERT(JapaneseProcessor::ToRomaji(" chiェnji ") == " chenji ");
+    ASSERT(JapaneseProcessor::ToRomaji("っ") == "t");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_handles_sokuon_at_boundaries)
+{
+    // "笑っちゃ" -> "waratcha"
+    // Even if split into "わらっ" and "ちゃ", it should result in "waratcha"
+    // (fallback 't' from map + 'cha' = 'tcha')
+    ASSERT(JapaneseProcessor::ToRomaji("笑っちゃ") == "waratcha");
 }
 
 MVTF_TEST(japanese_processor_to_romaji_handles_small_tsu)
