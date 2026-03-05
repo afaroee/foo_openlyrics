@@ -109,7 +109,29 @@ const std::map<std::wstring, std::wstring> JapaneseProcessor::m_kana_romaji_map 
     {L"ギャ", L"gya"}, {L"ギュ", L"gyu"}, {L"ギョ", L"gyo"},
     {L"ジャ", L"ja"}, {L"ジュ", L"ju"}, {L"ジョ", L"jo"},
     {L"ビャ", L"bya"}, {L"ビュ", L"byu"}, {L"ビョ", L"byo"},
-    {L"ピャ", L"pya"}, {L"ピュ", L"pyu"}, {L"ピョ", L"pyo"}
+    {L"ピャ", L"pya"}, {L"ピュ", L"pyu"}, {L"ピョ", L"pyo"},
+    // Modern Katakana combinations
+    {L"チェ", L"che"}, {L"ちぇ", L"che"},
+    {L"ディ", L"di"}, {L"でぃ", L"di"},
+    {L"デュ", L"dyu"}, {L"でゅ", L"dyu"},
+    {L"ドゥ", L"du"}, {L"どぅ", L"du"},
+    {L"ティ", L"ti"}, {L"てぃ", L"ti"},
+    {L"テュ", L"tyu"}, {L"てゅ", L"tyu"},
+    {L"トゥ", L"tu"}, {L"とぅ", L"tu"},
+    {L"ファ", L"fa"}, {L"ふぁ", L"fa"},
+    {L"フィ", L"fi"}, {L"ふぃ", L"fi"},
+    {L"フェ", L"fe"}, {L"ふぇ", L"fe"},
+    {L"フォ", L"fo"}, {L"ふぉ", L"fo"},
+    {L"ウィ", L"wi"}, {L"うぃ", L"wi"},
+    {L"ウェ", L"we"}, {L"うぇ", L"we"},
+    {L"ウォ", L"wo"}, {L"うぉ", L"wo"},
+    {L"ヴァ", L"va"}, {L"ヴィ", L"vi"}, {L"ヴェ", L"ve"}, {L"ヴォ", L"vo"},
+    {L"シェ", L"she"}, {L"じぇ", L"je"}, {L"ジェ", L"je"},
+    // Small kana fallbacks (for cases where they are not part of a recognized combination)
+    {L"ぁ", L"a"}, {L"ぃ", L"i"}, {L"ぅ", L"u"}, {L"ぇ", L"e"}, {L"ぉ", L"o"},
+    {L"ァ", L"a"}, {L"ィ", L"i"}, {L"ゥ", L"u"}, {L"ェ", L"e"}, {L"ォ", L"o"},
+    {L"ゃ", L"ya"}, {L"ゅ", L"yu"}, {L"ょ", L"yo"},
+    {L"ャ", L"ya"}, {L"ュ", L"yu"}, {L"ョ", L"yo"}
 };
 
 bool JapaneseProcessor::ContainsJapanese(const std::string& text)
@@ -405,6 +427,23 @@ std::wstring JapaneseProcessor::KanaToRomaji(const std::wstring& text)
             }
         }
 
+        // Handle long vowel mark (extend previous vowel)
+        if (text[i] == L'ー' || text[i] == L'-')
+        {
+            if (!result.empty())
+            {
+                wchar_t last = result.back();
+                if (last == L'a' || last == L'i' || last == L'u' || last == L'e' || last == L'o')
+                {
+                    result += last;
+                    continue;
+                }
+            }
+            // If we couldn't match a vowel or it's at start, just add a dash or ignore
+            // For lyrics, ignoring or adding nothing is common, but let's keep it clean
+            continue; 
+        }
+
         // Handle single characters
         std::wstring single = text.substr(i, 1);
         auto it = m_kana_romaji_map.find(single);
@@ -452,6 +491,24 @@ MVTF_TEST(japanese_processor_to_romaji_converts_hiragana)
 MVTF_TEST(japanese_processor_to_romaji_converts_katakana)
 {
     ASSERT(JapaneseProcessor::ToRomaji("アイウエオ") == "aiueo");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_handles_small_kana_combinations)
+{
+    ASSERT(JapaneseProcessor::ToRomaji("チェンジ") == "chenji");
+    ASSERT(JapaneseProcessor::ToRomaji("ドゥ") == "du");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_handles_long_vowel_mark)
+{
+    ASSERT(JapaneseProcessor::ToRomaji("メロディー") == "merodii");
+    ASSERT(JapaneseProcessor::ToRomaji("ダカーポ") == "dakaapo");
+}
+
+MVTF_TEST(japanese_processor_to_romaji_handles_lone_small_kana)
+{
+    // Safety fallback for lone small kana
+    ASSERT(JapaneseProcessor::ToRomaji(" chiェnji ") == " chenji ");
 }
 
 MVTF_TEST(japanese_processor_to_romaji_handles_small_tsu)
